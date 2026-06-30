@@ -16,7 +16,7 @@ import Link from "next/link"
 interface ContractCapability {
   label: string
   risk: "high" | "medium" | "low"
-}
+} 
 
 interface ContractAnalysis {
   address: string

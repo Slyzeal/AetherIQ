@@ -3,7 +3,7 @@
 "use client"
 
 import { useEffect, useState, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Loader2, AlertCircle, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,20 +13,33 @@ import Link from "next/link"
 
 function WalletContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const address = searchParams.get("address")
   const [analysis, setAnalysis] = useState<WalletAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [redirecting, setRedirecting] = useState(false)
 
   const fetchAnalysis = async (addr: string) => {
-    setLoading(true); setError(null); setAnalysis(null)
+    setLoading(true); setError(null); setAnalysis(null); setRedirecting(false)
     try {
       const res = await fetch("/api/analyze/wallet", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: addr }),
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Analysis failed") }
-      setAnalysis(await res.json())
+      const data = await res.json()
+
+      // The API short-circuits and returns isContract:true without running the full
+      // wallet analysis when the address is a contract — redirect straight to the
+      // dedicated Contract Explainer instead of rendering a wallet view for it.
+      if (data.isContract) {
+        setRedirecting(true)
+        router.replace(`/dashboard/contract?address=${encodeURIComponent(addr)}`)
+        return
+      }
+
+      setAnalysis(data)
     } catch (e) { setError(e instanceof Error ? e.message : "Failed to analyze wallet") }
     finally { setLoading(false) }
   }
@@ -40,21 +53,23 @@ function WalletContent() {
     </div>
   )
 
-  if (loading) return (
+  if (loading || redirecting) return (
     <div className="flex flex-col items-center justify-center h-64 gap-5">
       <div className="w-14 h-14 rounded-[10px] bg-[rgba(14,14,24,0.85)] border border-[#1e1e2e] flex items-center justify-center">
         <Loader2 className="w-6 h-6 text-[#00d4a8] animate-spin" />
       </div>
       <div className="text-center">
-        <p className="text-white font-semibold text-[15px]">Analyzing wallet…</p>
-        <p className="text-white/30 text-[13px] mt-1">Fetching on-chain data and running AI analysis</p>
+        <p className="text-white font-semibold text-[15px]">{redirecting ? "Smart contract detected…" : "Analyzing wallet…"}</p>
+        <p className="text-white/30 text-[13px] mt-1">{redirecting ? "Opening Contract Explainer" : "Fetching on-chain data and running AI analysis"}</p>
       </div>
-      <div className="flex flex-col gap-1 text-center">
-        {["Connecting to Mantle RPC…", "Fetching transaction history…", "Running AI analysis…"].map((step, i) => (
-          <motion.p key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 1.2 }}
-            className="text-[12px] text-white/20">{step}</motion.p>
-        ))}
-      </div>
+      {!redirecting && (
+        <div className="flex flex-col gap-1 text-center">
+          {["Connecting to Mantle RPC…", "Fetching transaction history…", "Running AI analysis…"].map((step, i) => (
+            <motion.p key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 1.2 }}
+              className="text-[12px] text-white/20">{step}</motion.p>
+          ))}
+        </div>
+      )}
     </div>
   )
 
@@ -75,23 +90,7 @@ function WalletContent() {
   )
 
   if (!analysis) return null
-  return (
-    <>
-      {analysis.isContract && (
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-[8px] border border-[#7c3aed]/25 bg-[#7c3aed]/06 px-4 py-3 flex-wrap">
-          <p className="text-[13px] text-purple-300">
-            This address is a smart contract, not a regular wallet. For contract-specific analysis (capabilities, deployment info, safety signals), try the dedicated view.
-          </p>
-          <Link href={`/dashboard/contract?address=${encodeURIComponent(address!)}`}>
-            <Button variant="outline" size="sm" className="border-[#7c3aed]/40 text-purple-300 hover:bg-[#7c3aed]/10 flex-shrink-0">
-              Open Contract Explainer
-            </Button>
-          </Link>
-        </div>
-      )}
-      <WalletDashboard analysis={analysis} onRefresh={() => fetchAnalysis(address!)} />
-    </>
-  )
+  return <WalletDashboard analysis={analysis} onRefresh={() => fetchAnalysis(address!)} />
 }
 
 export default function WalletPage() {

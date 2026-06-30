@@ -1,8 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
-import { ArrowRight, MessageSquare, Shield, Zap, Lock, Activity } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ArrowRight, MessageSquare, Shield, Zap, Lock, Activity, Menu, X, Wallet, Coins, Star } from "lucide-react"
 
 const featurePills = [
   { icon: Shield, label: "Real-time data", sub: "Live from chain" },
@@ -25,6 +26,7 @@ function LogoIcon({ size = 38 }: { size?: number }) {
 
 export default function LandingPage() {
   const router = useRouter()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const handleAnalyze = () => {
     router.push("/dashboard")
@@ -42,13 +44,61 @@ export default function LandingPage() {
           </span>
         </div>
         {/* Hamburger */}
-        <div className="w-[42px] h-[42px] rounded-[10px] flex flex-col items-center justify-center gap-[5px] cursor-pointer border border-white/10"
+        <button
+          onClick={() => setMenuOpen(true)}
+          aria-label="Open menu"
+          className="w-[42px] h-[42px] rounded-[10px] flex items-center justify-center cursor-pointer border border-white/10 hover:bg-white/10 transition-colors"
           style={{ background: "rgba(255,255,255,0.08)" }}>
-          <span className="block w-[18px] h-[1.5px] bg-white rounded-full" />
-          <span className="block w-[18px] h-[1.5px] bg-white rounded-full" />
-          <span className="block w-[18px] h-[1.5px] bg-white rounded-full" />
-        </div>
+          <Menu className="w-5 h-5 text-white" />
+        </button>
       </nav>
+
+      {/* Mobile menu overlay */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex flex-col"
+            style={{ background: "rgba(8,8,15,0.97)", backdropFilter: "blur(20px)" }}>
+            <button
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close menu"
+              className="absolute top-[18px] right-5 w-10 h-10 rounded-[10px] flex items-center justify-center cursor-pointer border border-white/15"
+              style={{ background: "rgba(255,255,255,0.08)" }}>
+              <X className="w-5 h-5 text-white" />
+            </button>
+            <div className="flex flex-col gap-1 pt-20 px-7">
+              {[
+                { label: "Dashboard", icon: ArrowRight, href: "/dashboard" },
+                { label: "Wallet Analyzer", icon: Wallet, href: "/dashboard/wallet" },
+                { label: "Token Intelligence", icon: Coins, href: "/dashboard/token" },
+                { label: "AI Chat", icon: MessageSquare, href: "/dashboard/chat" },
+                { label: "Watchlist", icon: Star, href: "/dashboard/watchlist" },
+              ].map((item) => (
+                <button
+                  key={item.href}
+                  onClick={() => { setMenuOpen(false); router.push(item.href) }}
+                  className="flex items-center gap-3 py-[14px] text-[17px] font-semibold text-white/80 hover:text-[#00d4a8] transition-colors border-b border-white/[0.06] text-left"
+                >
+                  <item.icon className="w-[18px] h-[18px]" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="px-7 pb-7 mt-auto">
+              <button
+                onClick={() => { setMenuOpen(false); router.push("/dashboard/wallet") }}
+                className="flex items-center justify-center gap-2.5 h-14 rounded-[14px] bg-[#00d4a8] text-black font-bold w-full"
+              >
+                Analyze a Wallet
+                <ArrowRight className="w-[18px] h-[18px]" strokeWidth={2.5} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hero */}
       <section className="px-6 pt-10 pb-8 text-center" style={{ background: "transparent" }}>
@@ -94,20 +144,25 @@ export default function LandingPage() {
       </section>
 
       {/* Feature pills */}
-      <div className="flex gap-2.5 px-5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-        {featurePills.map((pill, i) => (
-          <div key={i} className="flex items-center gap-2 flex-shrink-0 px-3.5 py-2.5 rounded-[12px] border border-white/[0.09]"
-            style={{ background: "rgba(255,255,255,0.06)" }}>
-            <div className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0"
-              style={{ background: "rgba(255,255,255,0.08)" }}>
-              <pill.icon className="w-3.5 h-3.5 text-[#00d4a8]" />
+      <div className="relative">
+        <div className="flex gap-2.5 px-5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {featurePills.map((pill, i) => (
+            <div key={i} className="flex items-center gap-2 flex-shrink-0 px-3.5 py-2.5 rounded-[12px] border border-white/[0.09]"
+              style={{ background: "rgba(255,255,255,0.06)" }}>
+              <div className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(255,255,255,0.08)" }}>
+                <pill.icon className="w-3.5 h-3.5 text-[#00d4a8]" />
+              </div>
+              <div>
+                <p className="text-white font-bold leading-none" style={{ fontSize: 12 }}>{pill.label}</p>
+                <p className="text-white/40 leading-none mt-1" style={{ fontSize: 11 }}>{pill.sub}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-white font-bold leading-none" style={{ fontSize: 12 }}>{pill.label}</p>
-              <p className="text-white/40 leading-none mt-1" style={{ fontSize: 11 }}>{pill.sub}</p>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        {/* Fade hint indicating more content scrolls horizontally */}
+        <div className="absolute right-0 top-0 bottom-1 w-8 pointer-events-none"
+          style={{ background: "linear-gradient(to right, transparent, #08080f)" }} />
       </div>
 
       {/* Dashboard preview card */}
@@ -116,11 +171,11 @@ export default function LandingPage() {
           style={{ background: "rgba(12,12,20,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
 
           {/* Dashboard header */}
-          <div className="flex items-center justify-between mb-4">
-            <span className="font-extrabold text-[18px] tracking-[-0.3px]">Dashboard</span>
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <span className="font-extrabold text-[18px] tracking-[-0.3px] flex-shrink-0">Dashboard</span>
             <button
               onClick={() => router.push("/dashboard")}
-              className="flex items-center gap-1.5 px-3.5 py-[7px] rounded-[10px] border border-white/12 font-semibold cursor-pointer hover:bg-white/10 transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-[7px] rounded-[10px] border border-white/12 font-semibold cursor-pointer hover:bg-white/10 transition-colors whitespace-nowrap flex-shrink-0"
               style={{ fontSize: 12, color: "rgba(255,255,255,.8)", background: "rgba(255,255,255,.07)" }}>
               View full report
               <ArrowRight className="w-3.5 h-3.5" />
@@ -130,7 +185,7 @@ export default function LandingPage() {
           {/* Wallet + Score row */}
           <div className="grid gap-2.5 mb-2.5" style={{ gridTemplateColumns: "1.3fr 1fr" }}>
             {/* Wallet Overview */}
-            <div className="rounded-[16px] border border-white/[0.08] p-3.5" style={{ background: "rgba(255,255,255,0.04)" }}>
+            <div className="rounded-[16px] border border-white/[0.08] p-3.5 min-w-0" style={{ background: "rgba(255,255,255,0.04)" }}>
               <p className="text-[11px] font-semibold text-white/45 mb-2.5 tracking-[.2px]">Wallet Overview</p>
               <div className="flex items-center gap-2.5 mb-2">
                 <div className="w-10 h-10 rounded-[10px] flex-shrink-0 border border-white/10 flex items-center justify-center" style={{ background: "#0f2a1f" }}>
@@ -144,11 +199,11 @@ export default function LandingPage() {
                     <rect x="1" y="5" width="6" height="2" fill="#00d4a8"/>
                   </svg>
                 </div>
-                <div>
-                  <p className="font-bold text-[14px] font-mono tracking-tight">0x8cF…3a9e</p>
-                  <div className="flex gap-1.5 mt-1.5">
-                    <span className="text-[10px] font-semibold px-2 py-[2px] rounded-full bg-[#00d4a8]/15 text-[#00d4a8]">Active</span>
-                    <span className="text-[10px] font-semibold px-2 py-[2px] rounded-full text-white/60" style={{ background: "rgba(255,255,255,0.08)" }}>DeFi User</span>
+                <div className="min-w-0">
+                  <p className="font-bold text-[14px] font-mono tracking-tight truncate">0x8cF…3a9e</p>
+                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                    <span className="text-[10px] font-semibold px-2 py-[2px] rounded-full bg-[#00d4a8]/15 text-[#00d4a8] whitespace-nowrap">Active</span>
+                    <span className="text-[10px] font-semibold px-2 py-[2px] rounded-full text-white/60 whitespace-nowrap" style={{ background: "rgba(255,255,255,0.08)" }}>DeFi User</span>
                   </div>
                 </div>
               </div>
@@ -172,8 +227,8 @@ export default function LandingPage() {
           </div>
 
           {/* Portfolio + Risk row */}
-          <div className="grid grid-cols-2 gap-2.5 mb-2.5">
-            <div className="rounded-[16px] border border-white/[0.08] p-3.5" style={{ background: "rgba(255,255,255,0.04)" }}>
+          <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2.5 mb-2.5">
+            <div className="rounded-[16px] border border-white/[0.08] p-3.5 min-w-0" style={{ background: "rgba(255,255,255,0.04)" }}>
               <p className="text-[11px] font-semibold text-white/45 mb-2 tracking-[.2px]">Portfolio Value</p>
               <div className="flex items-end justify-between">
                 <div>
@@ -201,10 +256,10 @@ export default function LandingPage() {
           </div>
 
           {/* Ecosystem + Protocols row */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-[16px] border border-white/[0.08] p-3.5 flex flex-col items-center" style={{ background: "rgba(255,255,255,0.04)" }}>
+          <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2.5">
+            <div className="rounded-[16px] border border-white/[0.08] p-3.5 flex flex-col items-center min-w-0" style={{ background: "rgba(255,255,255,0.04)" }}>
               <p className="text-[11px] font-semibold text-white/45 mb-2 tracking-[.2px] self-start w-full">Mantle Ecosystem Score</p>
-              <svg width="100" height="100" viewBox="0 0 120 120">
+              <svg width="84" height="84" viewBox="0 0 120 120">
                 <polygon points="60,6 108,33 108,87 60,114 12,87 12,33" fill="rgba(0,212,168,0.05)" stroke="rgba(0,212,168,0.3)" strokeWidth="1.5"/>
                 <polygon points="60,16 98,38 98,82 60,104 22,82 22,38" fill="none" stroke="rgba(0,212,168,0.15)" strokeWidth="1" strokeDasharray="4 3"/>
                 <polygon points="60,6 108,33 108,87 60,114 12,87 12,33" fill="none" stroke="#00d4a8" strokeWidth="2.5" strokeDasharray="185 55"/>
@@ -215,7 +270,7 @@ export default function LandingPage() {
               <p className="text-[12px] font-bold text-[#00d4a8] mt-1">Excellent</p>
             </div>
 
-            <div className="rounded-[16px] border border-white/[0.08] p-3.5" style={{ background: "rgba(255,255,255,0.04)" }}>
+            <div className="rounded-[16px] border border-white/[0.08] p-3.5 min-w-0" style={{ background: "rgba(255,255,255,0.04)" }}>
               <p className="text-[11px] font-semibold text-white/45 mb-3 tracking-[.2px]">Top Protocol</p>
               {[
                 { name: "LayerBank", pct: "26.7%", w: "78%", color: "#00d4a8" },
@@ -224,16 +279,16 @@ export default function LandingPage() {
                 { name: "FusionX", pct: "11.6%", w: "34%", color: "#00d4a8" },
                 { name: "Others", pct: "28.3%", w: "83%", color: "#6366f1" },
               ].map((p, i) => (
-                <div key={i} className="flex items-center gap-2 mb-2 last:mb-0">
-                  <div className="w-[20px] h-[20px] rounded-full flex-shrink-0 border border-white/10 flex items-center justify-center"
+                <div key={i} className="flex items-center gap-1.5 mb-2 last:mb-0 min-w-0">
+                  <div className="w-[16px] h-[16px] rounded-full flex-shrink-0 border border-white/10 flex items-center justify-center"
                     style={{ background: i === 0 ? "#0a2a3a" : i === 1 ? "#2a1a0a" : i === 2 ? "#0a1a3a" : i === 3 ? "#0a0a2a" : "#1a1a1a" }}>
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: p.color }} />
+                    <div className="w-1 h-1 rounded-full" style={{ background: p.color }} />
                   </div>
-                  <span className="text-[11px] text-white/70 flex-1 truncate">{p.name}</span>
-                  <div className="w-[60px] h-[3px] rounded-full overflow-hidden flex-shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}>
+                  <span className="text-[10px] text-white/70 truncate" style={{ minWidth: 0, flexBasis: "38%" }}>{p.name}</span>
+                  <div className="h-[3px] rounded-full overflow-hidden flex-1 min-w-[12px]" style={{ background: "rgba(255,255,255,0.08)" }}>
                     <div className="h-full rounded-full" style={{ width: p.w, background: p.color }} />
                   </div>
-                  <span className="text-[11px] text-white/45 min-w-[32px] text-right flex-shrink-0">{p.pct}</span>
+                  <span className="text-[10px] text-white/45 text-right flex-shrink-0" style={{ minWidth: 28 }}>{p.pct}</span>
                 </div>
               ))}
             </div>

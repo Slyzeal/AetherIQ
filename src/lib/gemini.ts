@@ -1,3 +1,5 @@
+// FILE PATH: src/lib/gemini.ts
+
 // gemini-1.5-flash was fully decommissioned by Google (all requests return 404).
 // Using gemini-2.5-flash — current stable GA model as of mid-2026.
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
@@ -9,7 +11,7 @@ interface GeminiResponse {
   }>
 }
 
-async function callGemini(prompt: string, systemPrompt?: string): Promise<string> {
+async function callGemini(prompt: string, systemPrompt?: string, responseSchema?: object): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error("Gemini API key not configured")
 
@@ -21,17 +23,27 @@ async function callGemini(prompt: string, systemPrompt?: string): Promise<string
       ]
     : [{ role: "user", parts: [{ text: prompt }] }]
 
+  const generationConfig: Record<string, unknown> = {
+    temperature: 0.7,
+    topK: 40,
+    topP: 0.95,
+    maxOutputTokens: 3072,
+  }
+
+  // When a schema is provided, force Gemini to emit syntactically guaranteed valid JSON
+  // matching that exact shape — this eliminates malformed-JSON parse failures at the source
+  // instead of only cleaning up markdown fences after the fact.
+  if (responseSchema) {
+    generationConfig.responseMimeType = "application/json"
+    generationConfig.responseSchema = responseSchema
+  }
+
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents,
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 2048,
-      },
+      generationConfig,
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -47,7 +59,16 @@ async function callGemini(prompt: string, systemPrompt?: string): Promise<string
   }
 
   const data: GeminiResponse = await response.json()
-  return data.candidates[0]?.content?.parts[0]?.text || ""
+  const candidate = data.candidates[0]
+
+  // A response cut off by the token limit will be incomplete JSON even with a schema
+  // enforced — catch this explicitly so it degrades to the fallback cleanly instead of
+  // throwing a confusing "Unterminated string" parse error deeper in the call stack.
+  if (candidate?.finishReason === "MAX_TOKENS") {
+    throw new Error("Gemini response was truncated (MAX_TOKENS) before completing")
+  }
+
+  return candidate?.content?.parts[0]?.text || ""
 }
 
 const SYSTEM_PROMPT = `You are AetherIQ, an elite blockchain intelligence analyst specializing in the Mantle network. 
@@ -56,6 +77,82 @@ You write like a senior analyst at a top crypto research firm — confident, pre
 Always respond with valid JSON when asked for structured data.
 Never say "I cannot" — always provide your best analysis based on available data.
 Be specific, not generic. Reference actual numbers and patterns from the data provided.`
+
+// Gemini structured-output schemas (https://ai.google.dev/gemini-api/docs/structured-output).
+// Passing these via responseSchema forces the API itself to guarantee syntactically valid JSON
+// matching this exact shape, rather than relying on the prompt instructions alone — this is
+// what prevents "Unterminated string in JSON" / malformed-output parse failures.
+const WALLET_ANALYSIS_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    summary: { type: "STRING" },
+    personality: { type: "STRING", enum: ["Whale", "Yield Farmer", "Diamond Hands", "Trader", "NFT Collector", "Liquidity Provider", "Protocol Explorer", "Memecoin Gambler", "New Wallet"] },
+    walletScore: { type: "INTEGER" },
+    ecosystemScore: { type: "INTEGER" },
+    riskScore: { type: "INTEGER" },
+    riskLevel: { type: "STRING", enum: ["Low", "Moderate", "High", "Critical"] },
+    timeline: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { date: { type: "STRING" }, event: { type: "STRING" } }, required: ["date", "event"] },
+    },
+    warnings: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { type: { type: "STRING" }, severity: { type: "STRING", enum: ["low", "medium", "high"] }, description: { type: "STRING" } }, required: ["type", "severity", "description"] },
+    },
+    recommendations: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { title: { type: "STRING" }, description: { type: "STRING" }, priority: { type: "STRING", enum: ["low", "medium", "high"] } }, required: ["title", "description", "priority"] },
+    },
+    insights: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { label: { type: "STRING" }, value: { type: "STRING" } }, required: ["label", "value"] },
+    },
+    protocols: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { name: { type: "STRING" }, percentage: { type: "NUMBER" }, value: { type: "STRING" } }, required: ["name", "percentage", "value"] },
+    },
+  },
+  required: ["summary", "personality", "walletScore", "ecosystemScore", "riskScore", "riskLevel", "timeline", "warnings", "recommendations", "insights", "protocols"],
+}
+
+const TRANSACTION_ANALYSIS_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    summary: { type: "STRING" },
+    type: { type: "STRING", enum: ["Transfer", "Swap", "Contract Interaction", "Contract Deployment", "Bridge", "Stake", "Unstake", "Claim Rewards", "Approve", "Mint", "Burn"] },
+    explanation: { type: "STRING" },
+    assetsTransferred: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { asset: { type: "STRING" }, amount: { type: "STRING" }, direction: { type: "STRING", enum: ["in", "out"] } }, required: ["asset", "amount", "direction"] },
+    },
+    protocolInvolved: { type: "STRING" },
+    gasEfficiency: { type: "STRING", enum: ["Efficient", "Average", "Expensive"] },
+    riskFlags: { type: "ARRAY", items: { type: "STRING" } },
+    significance: { type: "STRING", enum: ["Low", "Medium", "High"] },
+  },
+  required: ["summary", "type", "explanation", "assetsTransferred", "protocolInvolved", "gasEfficiency", "riskFlags", "significance"],
+}
+
+const TOKEN_ANALYSIS_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    summary: { type: "STRING" },
+    safetyScore: { type: "INTEGER" },
+    riskLevel: { type: "STRING", enum: ["Low", "Moderate", "High", "Critical"] },
+    warnings: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { type: { type: "STRING" }, severity: { type: "STRING", enum: ["low", "medium", "high"] }, description: { type: "STRING" } }, required: ["type", "severity", "description"] },
+    },
+    contractSafety: { type: "STRING", enum: ["Safe", "Moderate Risk", "High Risk"] },
+    liquidityHealth: { type: "STRING", enum: ["Healthy", "Moderate", "Low", "Unknown"] },
+    ownershipStatus: { type: "STRING", enum: ["Renounced", "Centralized", "Decentralized", "Unknown"] },
+    keyMetrics: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { label: { type: "STRING" }, value: { type: "STRING" } }, required: ["label", "value"] },
+    },
+  },
+  required: ["summary", "safetyScore", "riskLevel", "warnings", "contractSafety", "liquidityHealth", "ownershipStatus", "keyMetrics"],
+}
 
 export async function analyzeWallet(walletData: {
   address: string
@@ -99,7 +196,7 @@ Wallet Data:
 Return ONLY the JSON object, no markdown, no explanation.`
 
   try {
-    const response = await callGemini(prompt, SYSTEM_PROMPT)
+    const response = await callGemini(prompt, SYSTEM_PROMPT, WALLET_ANALYSIS_SCHEMA)
     const cleaned = response.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
     return JSON.parse(cleaned)
   } catch (error) {
@@ -148,7 +245,7 @@ Transaction Data:
 Return ONLY the JSON object.`
 
   try {
-    const response = await callGemini(prompt, SYSTEM_PROMPT)
+    const response = await callGemini(prompt, SYSTEM_PROMPT, TRANSACTION_ANALYSIS_SCHEMA)
     const cleaned = response.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
     return JSON.parse(cleaned)
   } catch (error) {
@@ -196,7 +293,7 @@ Token Data:
 Return ONLY the JSON object.`
 
   try {
-    const response = await callGemini(prompt, SYSTEM_PROMPT)
+    const response = await callGemini(prompt, SYSTEM_PROMPT, TOKEN_ANALYSIS_SCHEMA)
     const cleaned = response.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
     return JSON.parse(cleaned)
   } catch (error) {

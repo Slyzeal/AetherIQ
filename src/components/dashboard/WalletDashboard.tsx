@@ -179,8 +179,8 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <p className="text-[10px] font-bold leading-none">$32,426</p>
-                      <p className="text-[9px] text-white/30 mt-0.5">Total</p>
+                      <p className="text-[10px] font-bold leading-none">{parseFloat(analysis.balance).toFixed(2)} MNT</p>
+                      <p className="text-[9px] text-white/30 mt-0.5">Balance</p>
                     </div>
                   </div>
                   <div className="flex flex-col gap-[7px] flex-1 min-w-0">

@@ -1,3 +1,5 @@
+// FILE PATH: src/app/page.tsx
+
 "use client"
 
 import { useState } from "react"
@@ -7,7 +9,7 @@ import { ArrowRight, MessageSquare, Shield, Zap, Lock, Activity, Menu, X, Wallet
 
 const featurePills = [
   { icon: Shield, label: "Real-time data", sub: "Live from chain" },
-  { icon: Zap, label: "AI Powered", sub: "Gemini 1.5 Flash" },
+  { icon: Zap, label: "AI Powered", sub: "Gemini 2.5 Flash" },
   { icon: Lock, label: "Privacy First", sub: "We don't store your keys" },
   { icon: Activity, label: "50,000+", sub: "Analyses completed" },
 ]

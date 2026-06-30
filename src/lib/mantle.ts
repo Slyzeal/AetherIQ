@@ -1,3 +1,5 @@
+// FILE PATH: src/lib/mantle.ts
+
 import { createPublicClient, http, formatEther, formatUnits, parseAbiItem, type Chain } from "viem"
 
 export const mantleChain = {
@@ -25,12 +27,30 @@ export const ERC20_ABI = [
   { name: "balanceOf", type: "function", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
 ] as const
 
+// Detects whether an address is a smart contract or a regular wallet (EOA).
+// Uses eth_getCode under the hood: a contract has deployed bytecode at its address,
+// a regular wallet returns empty/undefined. This is the standard, universal way to
+// tell the two apart — works for any address on any EVM chain, no protocol-specific
+// knowledge required.
+export async function isContractAddress(address: `0x${string}`): Promise<boolean> {
+  try {
+    const bytecode = await publicClient.getBytecode({ address })
+    return !!bytecode && bytecode !== "0x"
+  } catch (error) {
+    console.error("Error checking address type:", error)
+    // Fail safe: if the check itself fails, assume EOA rather than block the rest
+    // of the analysis — this is a classification aid, not a hard requirement.
+    return false
+  }
+}
+
 export async function getWalletData(address: `0x${string}`) {
   try {
-    const [balance, txCount, blockNumber] = await Promise.all([
+    const [balance, txCount, blockNumber, isContract] = await Promise.all([
       publicClient.getBalance({ address }),
       publicClient.getTransactionCount({ address }),
       publicClient.getBlockNumber(),
+      isContractAddress(address),
     ])
 
     return {
@@ -39,6 +59,7 @@ export async function getWalletData(address: `0x${string}`) {
       balanceRaw: balance.toString(),
       txCount: Number(txCount),
       blockNumber: Number(blockNumber),
+      isContract,
     }
   } catch (error) {
     console.error("Error fetching wallet data:", error)

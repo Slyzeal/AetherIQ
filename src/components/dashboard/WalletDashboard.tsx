@@ -1,5 +1,8 @@
+// FILE PATH: src/components/dashboard/WalletDashboard.tsx
+
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Copy, ExternalLink, RefreshCw, Zap, Shield, AlertTriangle, TrendingUp, Activity, BarChart3, Clock, Gem, Target } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts"
@@ -8,6 +11,7 @@ import { truncateAddress } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import Modal from "@/components/ui/modal"
 import ScoreRing from "./ScoreRing"
 import RiskMeter from "./RiskMeter"
 import WarningCard from "./WarningCard"
@@ -35,6 +39,15 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
     value: item.percentage,
     color: COLORS[i % COLORS.length],
   }))
+
+  // Each "View all" / "View Portfolio" / "View Full Risk Report" button opens its own
+  // modal or expands its own section in place — all using data already loaded in `analysis`,
+  // so no extra network requests are needed.
+  const [activeModal, setActiveModal] = useState<"portfolio" | "risk" | null>(null)
+  const [protocolsExpanded, setProtocolsExpanded] = useState(false)
+  const [timelineExpanded, setTimelineExpanded] = useState(false)
+  const [warningsExpanded, setWarningsExpanded] = useState(false)
+  const [insightsExpanded, setInsightsExpanded] = useState(false)
 
   return (
     <div className="flex flex-col gap-3">
@@ -164,7 +177,7 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
             <Card>
               <CardHeader>
                 <CardTitle>Portfolio Overview</CardTitle>
-                <a href="#" className="text-[12px] text-[#00d4a8] hover:underline">View Portfolio →</a>
+                <button onClick={() => setActiveModal("portfolio")} className="text-[12px] text-[#00d4a8] hover:underline cursor-pointer">View Portfolio →</button>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3">
@@ -200,12 +213,16 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
             <Card>
               <CardHeader>
                 <CardTitle>Protocol Distribution</CardTitle>
-                <a href="#" className="text-[12px] text-[#00d4a8] hover:underline">View all →</a>
+                {analysis.protocols?.length > 5 && (
+                  <button onClick={() => setProtocolsExpanded((p) => !p)} className="text-[12px] text-[#00d4a8] hover:underline cursor-pointer flex items-center gap-1">
+                    {protocolsExpanded ? "Show less" : "View all →"}
+                  </button>
+                )}
               </CardHeader>
               <CardContent>
                 {analysis.protocols?.length > 0 ? (
                   <div className="space-y-[10px]">
-                    {analysis.protocols.slice(0, 5).map((proto, i) => (
+                    {(protocolsExpanded ? analysis.protocols : analysis.protocols.slice(0, 5)).map((proto, i) => (
                       <div key={i}>
                         <div className="flex items-center mb-1">
                           <span className="text-[12px] text-white/55 flex-1">{proto.name}</span>
@@ -231,10 +248,27 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
               <CardTitle className="flex items-center gap-1.5">
                 <Activity className="w-3 h-3 text-[#00d4a8]" /> Activity Timeline
               </CardTitle>
-              <a href="#" className="text-[12px] text-[#00d4a8] hover:underline">View all →</a>
+              {analysis.timeline?.length > 0 && (
+                <button onClick={() => setTimelineExpanded((p) => !p)} className="text-[12px] text-[#00d4a8] hover:underline cursor-pointer">
+                  {timelineExpanded ? "Show less" : "View all →"}
+                </button>
+              )}
             </CardHeader>
             <CardContent className="pt-[10px]">
               {analysis.timeline?.length > 0 ? (
+                timelineExpanded ? (
+                  <div className="space-y-3">
+                    {analysis.timeline.map((event, i) => (
+                      <div key={i} className="flex items-start gap-3 pb-3 border-b border-[#1e1e2e] last:border-0 last:pb-0">
+                        <div className="w-[9px] h-[9px] rounded-full border-2 border-[#00d4a8] bg-[rgba(4,4,10,0.9)] mt-1 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold text-[#00d4a8] tracking-[0.3px]">{event.date}</p>
+                          <p className="text-[12px] text-white/55 leading-[1.5] mt-0.5">{event.event}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
                 <div className="overflow-x-auto pb-1" style={{ scrollbarWidth: "thin" }}>
                   <div className="flex relative min-w-max" style={{ paddingTop: "10px" }}>
                     {/* Timeline line */}
@@ -248,6 +282,7 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
                     ))}
                   </div>
                 </div>
+                )
               ) : (
                 <p className="text-white/25 text-[13px] text-center py-6">No timeline data</p>
               )}
@@ -307,7 +342,7 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
                   <span className="text-[12px] font-semibold text-[#f59e0b]">Medium</span>
                 </div>
               </div>
-              <button className="w-full py-2 text-[12px] text-white/35 border border-[#1e1e2e] rounded-[6px] hover:text-white hover:border-[#333] transition-all">
+              <button onClick={() => setActiveModal("risk")} className="w-full py-2 text-[12px] text-white/35 border border-[#1e1e2e] rounded-[6px] hover:text-white hover:border-[#333] transition-all cursor-pointer">
                 View Full Risk Report
               </button>
             </CardContent>
@@ -320,10 +355,14 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
                 <CardTitle className="flex items-center gap-1.5">
                   <AlertTriangle className="w-3 h-3 text-orange-400" /> Top Warnings
                 </CardTitle>
-                <a href="#" className="text-[12px] text-[#00d4a8] hover:underline">View all</a>
+                {analysis.warnings.length > 3 && (
+                  <button onClick={() => setWarningsExpanded((p) => !p)} className="text-[12px] text-[#00d4a8] hover:underline cursor-pointer">
+                    {warningsExpanded ? "Show less" : "View all"}
+                  </button>
+                )}
               </CardHeader>
               <CardContent className="pt-[10px]">
-                {analysis.warnings.slice(0, 3).map((w, i) => <WarningCard key={i} warning={w} />)}
+                {(warningsExpanded ? analysis.warnings : analysis.warnings.slice(0, 3)).map((w, i) => <WarningCard key={i} warning={w} />)}
               </CardContent>
             </Card>
           )}
@@ -335,7 +374,6 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
                 <CardTitle className="flex items-center gap-1.5">
                   <Zap className="w-3 h-3 text-[#00d4a8]" /> AI Insights
                 </CardTitle>
-                <a href="#" className="text-[12px] text-[#00d4a8] hover:underline">View all</a>
               </CardHeader>
               <CardContent className="pt-[10px] space-y-3">
                 {analysis.insights.map((ins, i) => {
@@ -357,6 +395,76 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
           )}
         </div>
       </div>
+
+      {/* Portfolio modal — full breakdown of every holding */}
+      <Modal open={activeModal === "portfolio"} onClose={() => setActiveModal(null)} title="Portfolio Breakdown" subtitle={truncateAddress(analysis.address, 6)}>
+        <div className="flex flex-col items-center gap-4 mb-5">
+          <div className="w-[160px] h-[160px] relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={48} outerRadius={76} dataKey="value" strokeWidth={0}>
+                  {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: "#161616", border: "1px solid #262626", borderRadius: 6, fontSize: 11 }}
+                  formatter={(v) => [`${v}%`, ""]} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <p className="text-[14px] font-bold">{parseFloat(analysis.balance).toFixed(2)} MNT</p>
+              <p className="text-[11px] text-white/30 mt-0.5">Balance</p>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-2">
+          {portfolio.map((item, i) => (
+            <div key={i} className="flex items-center justify-between p-3 rounded-[8px] border border-[#1e1e2e]" style={{ background: "rgba(14,14,24,0.6)" }}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                <span className="text-white/80 text-[13px] font-semibold truncate">{item.symbol}</span>
+              </div>
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <span className="text-white/40 text-[12px]">{item.value}</span>
+                <span className="text-white/55 text-[12px] font-medium min-w-[40px] text-right">{item.percentage}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Modal>
+
+      {/* Risk report modal — full risk breakdown beyond the compact sidebar card */}
+      <Modal open={activeModal === "risk"} onClose={() => setActiveModal(null)} title="Risk Report" subtitle={truncateAddress(analysis.address, 6)}>
+        <div className="flex flex-col items-center gap-2 mb-5">
+          <RiskMeter score={analysis.riskScore} level={analysis.riskLevel} />
+          <p className="text-white/30 text-[12px]">{analysis.warnings?.length || 0} issue{analysis.warnings?.length === 1 ? "" : "s"} detected</p>
+        </div>
+
+        <p className="text-white/20 text-[10px] font-bold tracking-[1px] uppercase mb-2">Risk Factors</p>
+        <div className="space-y-[7px] mb-5">
+          <div className="flex justify-between p-2.5 rounded-[6px]" style={{ background: "rgba(14,14,24,0.6)" }}>
+            <span className="text-[12px] text-white/55">Smart contract exposure</span>
+            <span className="text-[12px] font-semibold text-[#f59e0b]">Medium</span>
+          </div>
+          <div className="flex justify-between p-2.5 rounded-[6px]" style={{ background: "rgba(14,14,24,0.6)" }}>
+            <span className="text-[12px] text-white/55">Whale interaction</span>
+            <span className="text-[12px] font-semibold text-[#00d4a8]">Low</span>
+          </div>
+          <div className="flex justify-between p-2.5 rounded-[6px]" style={{ background: "rgba(14,14,24,0.6)" }}>
+            <span className="text-[12px] text-white/55">Liquidity risk</span>
+            <span className="text-[12px] font-semibold text-[#f59e0b]">Medium</span>
+          </div>
+        </div>
+
+        {analysis.warnings?.length > 0 ? (
+          <>
+            <p className="text-white/20 text-[10px] font-bold tracking-[1px] uppercase mb-2">All Warnings</p>
+            <div className="space-y-2">
+              {analysis.warnings.map((w, i) => <WarningCard key={i} warning={w} />)}
+            </div>
+          </>
+        ) : (
+          <p className="text-white/25 text-[13px] text-center py-6">No specific warnings detected for this wallet.</p>
+        )}
+      </Modal>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Copy, ExternalLink, RefreshCw, Zap, Shield, AlertTriangle, TrendingUp, Activity } from "lucide-react"
+import { Copy, ExternalLink, RefreshCw, Zap, Shield, AlertTriangle, TrendingUp, Activity, BarChart3, Clock, Gem, Target } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts"
 import { WalletAnalysis } from "@/types"
 import { truncateAddress } from "@/lib/utils"
@@ -338,17 +338,20 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
                 <a href="#" className="text-[12px] text-[#00d4a8] hover:underline">View all</a>
               </CardHeader>
               <CardContent className="pt-[10px] space-y-3">
-                {analysis.insights.map((ins, i) => (
+                {analysis.insights.map((ins, i) => {
+                  const InsightIcon = [BarChart3, Clock, Gem, Target][i % 4]
+                  return (
                   <div key={i} className="flex items-start gap-[10px]">
-                    <div className="w-[26px] h-[26px] rounded-[5px] bg-[rgba(4,4,10,0.9)] border border-[#1e1e2e] flex items-center justify-center flex-shrink-0 text-[12px]">
-                      {["📊", "⏰", "💎", "🎯"][i % 4]}
+                    <div className="w-[26px] h-[26px] rounded-[5px] bg-[rgba(4,4,10,0.9)] border border-[#1e1e2e] flex items-center justify-center flex-shrink-0">
+                      <InsightIcon className="w-3 h-3 text-white/50" />
                     </div>
                     <div>
                       <p className="text-[12px] font-medium text-white/55">{ins.label}</p>
                       <p className="text-[11px] text-white/30 mt-[1px]">{ins.value}</p>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </CardContent>
             </Card>
           )}

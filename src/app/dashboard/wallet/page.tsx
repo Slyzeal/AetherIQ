@@ -91,7 +91,7 @@ function WalletContent() {
 
   if (!analysis) return null
   return <WalletDashboard analysis={analysis} onRefresh={() => fetchAnalysis(address!)} />
-}
+} 
 
 export default function WalletPage() {
   return (

@@ -1,3 +1,5 @@
+// FILE PATH: src/app/dashboard/page.tsx
+
 "use client"
 
 import { useState } from "react"
@@ -63,7 +65,7 @@ export default function DashboardHome() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
         {[
           { icon: Activity, label: "Live on Mantle", desc: "Real-time blockchain data", color: "#00d4a8" },
-          { icon: Shield, label: "AI-Powered", desc: "Gemini 1.5 Flash analysis", color: "#7c3aed" },
+          { icon: Shield, label: "AI-Powered", desc: "Gemini 2.5 Flash analysis", color: "#7c3aed" },
           { icon: TrendingUp, label: "Zero Config", desc: "No wallet required", color: "#f59e0b" },
         ].map((item, i) => (
           <Card key={i} className="hover:border-[#2a2a3a] transition-colors">

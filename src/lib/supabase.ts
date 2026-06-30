@@ -1,3 +1,5 @@
+// FILE PATH: src/lib/supabase.ts
+
 import { createClient, SupabaseClient } from "@supabase/supabase-js"
 
 let _supabase: SupabaseClient | null = null
@@ -25,7 +27,7 @@ export async function getCachedAnalysis(key: string) {
     if (error || !data) return null
 
     const cacheAge = Date.now() - new Date(data.created_at).getTime()
-    if (cacheAge > 30 * 60 * 1000) return null
+    if (cacheAge > 12 * 60 * 60 * 1000) return null
 
     return data.analysis_data
   } catch {

@@ -52,14 +52,14 @@ function NavContent({ onClose, collapsed }: { onClose: () => void; collapsed: bo
   const pathname = usePathname()
   return (
     <div className="flex flex-col h-full">
-      <div className={cn("h-14 flex items-center gap-3 border-b border-[#1e1e2e] flex-shrink-0", collapsed ? "justify-center px-2" : "px-4")}>
+      <Link href="/" className={cn("h-14 flex items-center gap-3 border-b border-[#1e1e2e] flex-shrink-0 cursor-pointer hover:bg-white/5 transition-colors", collapsed ? "justify-center px-2" : "px-4")}>
         <LogoIcon size={26} />
         {!collapsed && (
           <span className="font-bold text-[16px] tracking-tight whitespace-nowrap">
             Aether<span className="text-[#00d4a8]">IQ</span>
           </span>
         )}
-      </div>
+      </Link>
 
       <nav className="flex-1 overflow-y-auto py-3 px-2">
         {navItems.map((section) => (

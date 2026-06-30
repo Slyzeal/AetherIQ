@@ -1,6 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@source "../**/*.{ts,tsx}";
+
+@theme {
+  --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+}
 
 :root {
   --bg: #04040a;
@@ -51,22 +54,22 @@ body {
   50% { opacity: 0.3; }
 }
 
-@layer utilities {
-  .animate-blink { animation: blink 2s infinite; }
+@utility animate-blink {
+  animation: blink 2s infinite;
+}
 
-  .text-gradient {
-    background: linear-gradient(135deg, #00d4a8 0%, #7c3aed 60%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+@utility text-gradient {
+  background: linear-gradient(135deg, #00d4a8 0%, #7c3aed 60%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-  /* Semi-transparent card that lets bg show through */
-  .card-glass {
-    background: rgba(14, 14, 24, 0.82);
-    border: 1px solid #1e1e2e;
-    border-radius: 8px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
+/* Semi-transparent card that lets bg show through */
+@utility card-glass {
+  background: rgba(14, 14, 24, 0.82);
+  border: 1px solid #1e1e2e;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }

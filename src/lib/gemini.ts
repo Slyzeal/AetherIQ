@@ -1,4 +1,6 @@
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+// gemini-1.5-flash was fully decommissioned by Google (all requests return 404).
+// Using gemini-2.5-flash — current stable GA model as of mid-2026.
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 interface GeminiResponse {
   candidates: Array<{

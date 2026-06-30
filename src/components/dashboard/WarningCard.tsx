@@ -19,9 +19,9 @@ export default function WarningCard({ warning }: { warning: Warning }) {
       )}>
         <Icon className={cn("w-3.5 h-3.5", color)} />
       </div>
-      <div>
+      <div className="min-w-0">
         <p className={cn("text-[11px] font-semibold", color)}>{warning.type}</p>
-        <p className="text-[10px] text-white/35 mt-[1px]">{warning.description}</p>
+        <p className="text-[10px] text-white/35 mt-[1px] break-words">{warning.description}</p>
       </div>
     </div>
   )

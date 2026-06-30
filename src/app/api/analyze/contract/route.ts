@@ -54,6 +54,6 @@ export async function POST(req: NextRequest) {
       { error: isNotAContract ? "This address is not a smart contract. Try the Wallet Analyzer instead." : (message || "Analysis failed") },
       { status: isNotAContract ? 400 : 500 }
     )
-  }
+  } 
 }
  

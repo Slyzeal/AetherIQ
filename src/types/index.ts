@@ -1,7 +1,10 @@
+// FILE PATH: src/types/index.ts
+
 export interface WalletAnalysis {
   address: string
   balance: string
   txCount: number
+  isContract?: boolean
   summary: string
   personality: string
   walletScore: number

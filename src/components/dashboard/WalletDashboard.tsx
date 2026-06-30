@@ -467,4 +467,4 @@ export default function WalletDashboard({ analysis, onRefresh }: WalletDashboard
       </Modal>
     </div>
   )
-}
+} 

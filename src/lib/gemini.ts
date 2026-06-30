@@ -154,6 +154,21 @@ const TOKEN_ANALYSIS_SCHEMA = {
   required: ["summary", "safetyScore", "riskLevel", "warnings", "contractSafety", "liquidityHealth", "ownershipStatus", "keyMetrics"],
 }
 
+const CONTRACT_ANALYSIS_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    summary: { type: "STRING" },
+    contractType: { type: "STRING" },
+    safetyScore: { type: "INTEGER" },
+    riskLevel: { type: "STRING", enum: ["Low", "Moderate", "High", "Critical"] },
+    warnings: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { type: { type: "STRING" }, severity: { type: "STRING", enum: ["low", "medium", "high"] }, description: { type: "STRING" } }, required: ["type", "severity", "description"] },
+    },
+  },
+  required: ["summary", "contractType", "safetyScore", "riskLevel", "warnings"],
+}
+
 export async function analyzeWallet(walletData: {
   address: string
   balance: string
@@ -346,5 +361,58 @@ function getDefaultWalletAnalysis(walletData: { txCount: number; balance: string
       { label: "MNT Balance", value: `${parseFloat(walletData.balance).toFixed(4)} MNT` },
     ],
     protocols: [],
+  }
+}
+
+export async function analyzeContract(contractData: {
+  address: string
+  bytecodeSizeBytes: number
+  capabilities: { label: string; risk: "high" | "medium" | "low" }[]
+  isToken: boolean
+  tokenName?: string
+  tokenSymbol?: string
+  txCount: number
+}) {
+  const capabilitiesList = contractData.capabilities.length > 0
+    ? contractData.capabilities.map((c) => `${c.label} (${c.risk} risk)`).join(", ")
+    : "None of the commonly-flagged functions were detected"
+
+  const prompt = `Analyze this Mantle blockchain smart contract and return a JSON object:
+{
+  "summary": "2-3 sentence plain English explanation of what this contract likely does and its overall risk posture",
+  "contractType": "best guess at contract category, e.g. 'ERC-20 Token', 'DEX Router', 'Lending Pool', 'NFT Collection', 'Proxy Contract', 'Unknown'",
+  "safetyScore": number 0-100,
+  "riskLevel": "Low|Moderate|High|Critical",
+  "warnings": [{"type": "warning", "severity": "low|medium|high", "description": "plain English warning about a specific detected capability and why it matters"}]
+}
+
+Contract Data:
+- Address: ${contractData.address}
+- Bytecode size: ${contractData.bytecodeSizeBytes} bytes
+- Is ERC-20 token: ${contractData.isToken}${contractData.isToken ? ` (${contractData.tokenName}, ${contractData.tokenSymbol})` : ""}
+- Total transactions: ${contractData.txCount}
+- Detected function capabilities: ${capabilitiesList}
+
+Base your analysis primarily on the detected capabilities — for example, mint() with no renounceOwnership() detected is a real centralization/inflation risk worth flagging, while pause() alone is fairly standard and lower risk. Do not assume malicious intent without evidence from the detected capabilities.
+
+Return ONLY the JSON object.`
+
+  try {
+    const response = await callGemini(prompt, SYSTEM_PROMPT, CONTRACT_ANALYSIS_SCHEMA)
+    const cleaned = response.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+    return JSON.parse(cleaned)
+  } catch (error) {
+    if (error instanceof Error && error.message === "Gemini API key not configured") throw error
+    console.error("Gemini contract analysis failed, using fallback:", error)
+    const highRiskCount = contractData.capabilities.filter((c) => c.risk === "high").length
+    return {
+      summary: `This contract has ${contractData.bytecodeSizeBytes} bytes of deployed bytecode and ${contractData.capabilities.length} commonly-flagged function${contractData.capabilities.length === 1 ? "" : "s"} detected.${contractData.isToken ? ` It appears to be an ERC-20 token (${contractData.tokenName}, ${contractData.tokenSymbol}).` : ""}`,
+      contractType: contractData.isToken ? "ERC-20 Token" : "Unknown",
+      safetyScore: Math.max(20, 80 - highRiskCount * 20),
+      riskLevel: highRiskCount > 1 ? "High" : highRiskCount === 1 ? "Moderate" : "Low",
+      warnings: contractData.capabilities
+        .filter((c) => c.risk === "high")
+        .map((c) => ({ type: "Privileged function detected", severity: "medium", description: `This contract exposes ${c.label}, which can be a centralization risk depending on who controls it.` })),
+    }
   }
 }

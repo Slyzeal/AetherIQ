@@ -81,5 +81,5 @@ export async function POST(req: NextRequest) {
       { error: (error instanceof Error ? error.message : undefined) || "Analysis failed" },
       { status: 500 }
     )
-  }
+  } 
 }

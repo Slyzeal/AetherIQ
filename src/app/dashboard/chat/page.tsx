@@ -1,3 +1,5 @@
+// FILE PATH: src/app/dashboard/chat/page.tsx
+
 "use client"
 
 import { useState, useRef, useEffect } from "react"
@@ -55,7 +57,7 @@ export default function ChatPage() {
         </div>
         <div>
           <h1 className="text-white font-bold text-[15px]">AI Chat</h1>
-          <p className="text-white/30 text-[11px]">Powered by Gemini 1.5 Flash · Mantle blockchain context</p>
+          <p className="text-white/30 text-[11px]">Powered by Gemini 2.5 Flash · Mantle blockchain context</p>
         </div>
         <div className="ml-auto flex items-center gap-1.5 text-[12px] text-[#00d4a8]">
           <div className="w-[6px] h-[6px] rounded-full bg-[#00d4a8] animate-blink" />

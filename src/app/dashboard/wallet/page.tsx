@@ -1,3 +1,5 @@
+// FILE PATH: src/app/dashboard/wallet/page.tsx
+
 "use client"
 
 import { useEffect, useState, Suspense } from "react"
@@ -73,7 +75,23 @@ function WalletContent() {
   )
 
   if (!analysis) return null
-  return <WalletDashboard analysis={analysis} onRefresh={() => fetchAnalysis(address!)} />
+  return (
+    <>
+      {analysis.isContract && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-[8px] border border-[#7c3aed]/25 bg-[#7c3aed]/06 px-4 py-3 flex-wrap">
+          <p className="text-[13px] text-purple-300">
+            This address is a smart contract, not a regular wallet. For contract-specific analysis (capabilities, deployment info, safety signals), try the dedicated view.
+          </p>
+          <Link href={`/dashboard/contract?address=${encodeURIComponent(address!)}`}>
+            <Button variant="outline" size="sm" className="border-[#7c3aed]/40 text-purple-300 hover:bg-[#7c3aed]/10 flex-shrink-0">
+              Open Contract Explainer
+            </Button>
+          </Link>
+        </div>
+      )}
+      <WalletDashboard analysis={analysis} onRefresh={() => fetchAnalysis(address!)} />
+    </>
+  )
 }
 
 export default function WalletPage() {
